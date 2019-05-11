@@ -1,0 +1,17 @@
+﻿  Source.cpp
+f:\software\vlctest\videoplayer\tplayer\include\libavutil\rational.h : warning C4819: The file contains a character that cannot be represented in the current code page (936). Save the file in Unicode format to prevent data loss
+f:\software\vlctest\videoplayer\tplayer\tplayer\source.cpp(102): warning C4477: 'printf' : format string '%d' requires an argument of type 'int', but variadic argument 1 has type 'int64_t'
+  f:\software\vlctest\videoplayer\tplayer\tplayer\source.cpp(102): note: consider using '%lld' in the format string
+  f:\software\vlctest\videoplayer\tplayer\tplayer\source.cpp(102): note: consider using '%Id' in the format string
+  f:\software\vlctest\videoplayer\tplayer\tplayer\source.cpp(102): note: consider using '%I64d' in the format string
+f:\software\vlctest\videoplayer\tplayer\tplayer\source.cpp(106): warning C4244: '=': conversion from 'double' to 'int', possible loss of data
+f:\software\vlctest\videoplayer\tplayer\tplayer\source.cpp(108): warning C4244: 'argument': conversion from 'int64_t' to 'DWORD', possible loss of data
+f:\software\vlctest\videoplayer\tplayer\tplayer\source.cpp(115): warning C4244: '=': conversion from 'int64_t' to 'int', possible loss of data
+f:\software\vlctest\videoplayer\tplayer\tplayer\source.cpp(199): warning C4018: '<': signed/unsigned mismatch
+f:\software\vlctest\videoplayer\tplayer\tplayer\source.cpp(214): warning C4244: '=': conversion from 'double' to 'int', possible loss of data
+  Generating code
+  11 of 13 functions (84.6%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    0 functions had inline decision re-evaluated but remain unchanged
+  Finished generating code
+  tplayer.vcxproj -> F:\Software\vlctest\videoPlayer\tplayer\\bin\tplayer.exe
