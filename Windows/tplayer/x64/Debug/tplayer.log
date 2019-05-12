@@ -1,0 +1,11 @@
+﻿  Source.cpp
+d:\tech\mediaplayer\windows\tplayer\source.cpp(121): warning C4477: 'printf' : format string '%d' requires an argument of type 'int', but variadic argument 1 has type 'int64_t'
+  d:\tech\mediaplayer\windows\tplayer\source.cpp(121): note: consider using '%lld' in the format string
+  d:\tech\mediaplayer\windows\tplayer\source.cpp(121): note: consider using '%Id' in the format string
+  d:\tech\mediaplayer\windows\tplayer\source.cpp(121): note: consider using '%I64d' in the format string
+d:\tech\mediaplayer\windows\tplayer\source.cpp(125): warning C4244: '=': conversion from 'double' to 'int', possible loss of data
+d:\tech\mediaplayer\windows\tplayer\source.cpp(127): warning C4244: 'argument': conversion from 'int64_t' to 'DWORD', possible loss of data
+d:\tech\mediaplayer\windows\tplayer\source.cpp(134): warning C4244: '=': conversion from 'int64_t' to 'int', possible loss of data
+d:\tech\mediaplayer\windows\tplayer\source.cpp(218): warning C4018: '<': signed/unsigned mismatch
+d:\tech\mediaplayer\windows\tplayer\source.cpp(233): warning C4244: '=': conversion from 'double' to 'int', possible loss of data
+  tplayer.vcxproj -> D:\Tech\MediaPlayer\Windows\x64\Debug\tplayer.exe

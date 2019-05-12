@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include <windows.h>
 #include <ctime>
+#include <libportaudio/portaudio.h>
+#include <libsndfile/sndfile.h>
+#include <sys/types.h>
 
 extern "C"
 {
@@ -11,6 +14,21 @@ extern "C"
 #include <sdl/SDL.h>
 }
 
+#include "dirent.h"
+#include "asprintf.h"
+
+#define NUM_SECONDS   (5)
+#define FRAMES_PER_BUFFER  (512)
+#define NUM_CHANNELS (2)
+
+typedef struct
+{
+	SNDFILE *file[NUM_CHANNELS];
+	SF_INFO info[NUM_CHANNELS];
+}
+paData;
+
+
 #undef main
 
 void cleanup(AVFormatContext *fmt_ctx, AVCodecContext *CodecCtx, FILE *fin, FILE *fout, AVFrame *frame, AVPacket *pkt);
@@ -18,7 +36,8 @@ void pgm_save(unsigned char *buf, int wrap, int xsize, int ysize, FILE *f);
 void decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, FILE *f, double frameDuration, time_t &lastTime, time_t &timeNow, int &firstFrame);
 void displayFrame(AVFrame * frame, AVCodecContext *dec_ctx);
 int initSDL(AVCodecContext *codec_ctx);
-DWORD WINAPI ThreadFunc(void* data);
+DWORD WINAPI playVideo(void* data);
+DWORD WINAPI playAudio(void* data);
 
 SDL_Renderer *renderer;
 SDL_Texture *texture;
@@ -162,9 +181,9 @@ int initSDL(AVCodecContext *codec_ctx)
 	return 0;
 }
 
-DWORD WINAPI ThreadFunc(void* data) {
-	const char *file = "test.wmv";
-	const char *outfile = "test.yuv";
+DWORD WINAPI playVideo(void* data) {
+	const char *file = "00_Video.mp4";
+	const char *outfile = "00_Video.yuv";
 
 	int ret = 0;
 	int videoFPS = 0;
@@ -323,12 +342,176 @@ DWORD WINAPI ThreadFunc(void* data) {
 	return 0;
 }
 
-int main() {
 
-	HANDLE thread = CreateThread(NULL, 0, ThreadFunc, NULL, 0, NULL);
+// Port Audio functions
+static int paStreamCallback(const void *inputBuffer, void *outputBuffer,
+	unsigned long framesPerBuffer,
+	const PaStreamCallbackTimeInfo* timeInfo,
+	PaStreamCallbackFlags statusFlags,
+	void *userData)
+{
+	paData *data = (paData*)userData;
+	float **out = (float**)outputBuffer;
+	unsigned long j;
+	sf_count_t num_read;
 
-	WaitForSingleObject(thread, INFINITE);
+	(void)timeInfo; /* Prevent unused variable warnings. */
+	(void)statusFlags;
+	(void)inputBuffer;
 
-	return 0;
+
+	for (j = 0; j < NUM_CHANNELS; ++j) {
+
+		/* clear output buffer */
+		memset(out[j], 0, sizeof(float) * framesPerBuffer * data->info[j].channels);
+
+		/* read directly into output buffer */
+		num_read = sf_read_float(data->file[j], out[j], framesPerBuffer * data->info[j].channels);
+
+		/* If we couldn't read a full frameCount of samples we've reached EOF */
+		if (num_read < framesPerBuffer)
+		{
+			return paComplete;
+		}
+	}
+
+	return paContinue;
 }
 
+DWORD WINAPI playAudio(void* a) {
+	// Pa variables
+	PaStreamParameters outputParameters;
+	PaStream *stream;
+	PaError err;
+	paData data;
+
+	//Utility variables
+	int i = 0;
+
+	// File IO variables
+	const char* path = "./"; ///Users/allanhsu/Downloads/Audio WAV and Quicktime Video Files
+	int opened = 0;
+
+	DIR *dp;
+	struct dirent *ep;
+
+	dp = opendir(path);
+
+	if (dp == NULL) {
+		printf("can't open directory.");
+		return 1;
+	}
+
+	while ((ep = readdir(dp))) {
+		printf("filename: %s\n", ep->d_name);
+		if (strstr(ep->d_name, ".wav") != NULL) {
+			char* filePath;
+
+			asprintf(&filePath, "%s%s", path, ep->d_name);
+
+			/* opening first 32 files and read info */
+			if (i < NUM_CHANNELS) {
+				data.file[i] = sf_open(filePath, SFM_READ, &data.info[i]);
+
+				free(filePath);
+				if (sf_error(data.file[i]) != SF_ERR_NO_ERROR) {
+					fprintf(stderr, "%s\n", sf_strerror(data.file[0]));
+					fprintf(stderr, "Failed to open: %s\n", ep->d_name);
+					return 1;
+				}
+				++opened;
+				printf("file: %s opened successfully.\n", ep->d_name);
+				++i;
+			}
+
+		}
+	}
+
+	(void)closedir(dp);
+
+	if (opened < NUM_CHANNELS) {
+		for (i = 0; i < opened; ++i) {
+			sf_close(data.file[i]);
+		}
+		printf("need at least %d wav files.", NUM_CHANNELS);
+		getchar();
+		return 1;
+	}
+
+	err = Pa_Initialize();
+	if (err != paNoError) goto error;
+
+	printf("Pa Initialized... \n");
+
+	outputParameters.hostApiSpecificStreamInfo = NULL;
+
+	/* outputParameters regardless of host */
+	outputParameters.device = Pa_GetDefaultOutputDevice(); /* default output device */
+	if (outputParameters.device == paNoDevice) {
+		fprintf(stderr, "Error: No default output device.\n");
+		goto error;
+	}
+	outputParameters.channelCount = NUM_CHANNELS; /* 32 channels output */
+	outputParameters.sampleFormat = paFloat32 | paNonInterleaved; /* 32 bit floating point output */
+	outputParameters.suggestedLatency = Pa_GetDeviceInfo(outputParameters.device)->defaultHighOutputLatency;
+
+	/* Open PaStream with values read from the file */
+	err = Pa_OpenStream(
+		&stream,
+		NULL, /* no input */
+		&outputParameters,
+		Pa_GetDeviceInfo(outputParameters.device)->defaultSampleRate,
+		FRAMES_PER_BUFFER,
+		paClipOff,      /* we won't output out of range samples so don't bother clipping them */
+		paStreamCallback,
+		&data);
+	if (err != paNoError) goto error;
+
+	/* Starts Stream here */
+	err = Pa_StartStream(stream);
+	if (err != paNoError) goto error;
+
+	/* Wait for the whole duration of file to finish playing */
+	while (Pa_IsStreamActive(stream)) {
+		Pa_Sleep(100);
+	}
+
+	/* Closes all opened audio files */
+	for (i = 0; i < opened; ++i) {
+		sf_close(data.file[i]);
+	}
+
+	/*  Shuts down portaudio */
+	err = Pa_CloseStream(stream);
+	if (err != paNoError) goto error;
+
+	Pa_Terminate();
+	if (err != paNoError) goto error;
+
+	return 0;
+error:
+	Pa_Terminate();
+	fprintf(stderr, "An error occured while using the portaudio stream\n");
+	fprintf(stderr, "Error number: %d\n", err);
+	fprintf(stderr, "Error message: %s\n", Pa_GetErrorText(err));
+
+	printf("Enter any key to exit program.");
+	getchar();
+
+	return err;
+}
+
+int main() {
+	
+	HANDLE thread = CreateThread(NULL, 0, playVideo, NULL, 0, NULL);
+	HANDLE thread2 = CreateThread(NULL, 0, playAudio, NULL, 0, NULL);
+
+	WaitForSingleObject(thread, INFINITE);
+	WaitForSingleObject(thread2, INFINITE);
+	
+	printf("Playback completes!\n");
+	printf("Enter any key to exit program.");
+	getchar();
+	
+	return 0;
+}
