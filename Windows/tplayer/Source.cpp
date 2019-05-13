@@ -33,7 +33,7 @@ paData;
 
 void cleanup(AVFormatContext *fmt_ctx, AVCodecContext *CodecCtx, FILE *fin, FILE *fout, AVFrame *frame, AVPacket *pkt);
 void pgm_save(unsigned char *buf, int wrap, int xsize, int ysize, FILE *f);
-void decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, FILE *f, double frameDuration, time_t &lastTime, time_t &timeNow, int &firstFrame);
+void decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, FILE *f, double frameDuration, time_t &lastTime, time_t &timeNow, int &firstFrame, double &timeBase);
 void displayFrame(AVFrame * frame, AVCodecContext *dec_ctx);
 int initSDL(AVCodecContext *codec_ctx);
 DWORD WINAPI playVideo(void* data);
@@ -44,7 +44,7 @@ SDL_Texture *texture;
 SDL_Rect r;
 int timeElapsed;
 int timeDifference;
-
+double timeBase;
 
 
 void cleanup(AVFormatContext *fmt_ctx, AVCodecContext *CodecCtx, FILE *fin, FILE *fout, AVFrame *frame, AVPacket *pkt) {
@@ -89,7 +89,8 @@ void displayFrame(AVFrame * frame, AVCodecContext *dec_ctx)
 }
 
 
-void decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, FILE *f, double frameDuration, time_t &lastTime, time_t &timeNow, int &firstFrame)
+
+void decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, FILE *f, double frameDuration, time_t &lastTime, time_t &timeNow, int &firstFrame, double &timeBase)
 {
 	int ret;
 
@@ -119,12 +120,15 @@ void decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, FILE *f, dou
 		
 		
 		printf("%d  ", frame->pts);
-
+		if (frame->pts == frame->pkt_dts) {
+			printf("%d  ", frame->pkt_dts);
+		}
+		printf("%f  ", timeBase);
 		localtime(&timeNow);
 		if (!firstFrame) {
 			timeDifference = difftime(lastTime, timeNow);
 			if ((frame->pts - timeElapsed) > timeDifference) {
-				Sleep(frame->pts - timeElapsed - timeDifference - 4);//not sure where this 4ms delay is from, localtime and thread time different? 
+				Sleep((frame->pts - timeElapsed - timeDifference)  * timeBase * 1000  - 4);//not sure where this 4ms delay is from, localtime and thread time different? 
 			}
 		}
 
@@ -191,7 +195,8 @@ DWORD WINAPI playVideo(void* data) {
 	int VideoStreamIndex = -1;
 	double frameDuration = 0;
 	timeElapsed = 0;
-
+	timeBase = 0;
+	
 	FILE *fin = NULL;
 	FILE *fout = NULL;
 	time_t timeNow;
@@ -232,6 +237,7 @@ DWORD WINAPI playVideo(void* data) {
 
 	videoFPS = av_q2d(fmt_ctx->streams[VideoStreamIndex]->r_frame_rate);
 	frameDuration = 1000.0 / videoFPS;
+	timeBase = av_q2d(fmt_ctx->streams[VideoStreamIndex]->time_base);
 	printf("fps is %d\n", videoFPS);
 
 	// dump video stream info
@@ -326,7 +332,7 @@ DWORD WINAPI playVideo(void* data) {
 		// if packet data is video data then send it to decoder
 		if (pkt->stream_index == VideoStreamIndex)
 		{
-			decode(codecCtx, frame, pkt, fout, frameDuration, lastTime, timeNow, firstFrame);
+			decode(codecCtx, frame, pkt, fout, frameDuration, lastTime, timeNow, firstFrame, timeBase);
 		}
 
 		// release packet buffers to be allocated again
@@ -335,7 +341,7 @@ DWORD WINAPI playVideo(void* data) {
 	}
 
 	//flush decoder
-	decode(codecCtx, frame, pkt, fout, frameDuration, lastTime, timeNow, firstFrame);
+	decode(codecCtx, frame, pkt, fout, frameDuration, lastTime, timeNow, firstFrame, timeBase);
 
 	cleanup(fmt_ctx, codecCtx, fin, fout, frame, pkt);
 
