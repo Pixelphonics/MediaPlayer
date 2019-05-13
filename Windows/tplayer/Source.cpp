@@ -195,7 +195,7 @@ DWORD WINAPI playVideo(void* data) {
 	int VideoStreamIndex = -1;
 	double frameDuration = 0;
 	timeElapsed = 0;
-	timeBase = 0;
+	timeBase = 0.001;
 	
 	FILE *fin = NULL;
 	FILE *fout = NULL;
