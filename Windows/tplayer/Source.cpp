@@ -6,6 +6,8 @@
 #include <libportaudio/portaudio.h>
 #include <libsndfile/sndfile.h>
 #include <sys/types.h>
+#include <thread>
+#include <chrono>
 
 extern "C"
 {
@@ -33,8 +35,8 @@ paData;
 
 void cleanup(AVFormatContext *fmt_ctx, AVCodecContext *CodecCtx, FILE *fin, FILE *fout, AVFrame *frame, AVPacket *pkt);
 void pgm_save(unsigned char *buf, int wrap, int xsize, int ysize, FILE *f);
-void decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, FILE *f, double frameDuration, time_t &lastTime, time_t &timeNow, int &firstFrame, double &timeBase);
-void displayFrame(AVFrame * frame, AVCodecContext *dec_ctx);
+void decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, FILE *f, double &frameDuration, int &firstFrame, double &timeBase, Uint32 &lTime, Uint32 &elapsed);
+void displayFrame(AVFrame * frame, AVCodecContext *dec_ctx, int &firstFrame, double &timeBase, double &frameDuration, Uint32 &lTime, Uint32 &elapsed);
 int initSDL(AVCodecContext *codec_ctx);
 DWORD WINAPI playVideo(void* data);
 DWORD WINAPI playAudio(void* data);
@@ -42,10 +44,6 @@ DWORD WINAPI playAudio(void* data);
 SDL_Renderer *renderer;
 SDL_Texture *texture;
 SDL_Rect r;
-int timeElapsed;
-int timeDifference;
-double timeBase;
-
 
 void cleanup(AVFormatContext *fmt_ctx, AVCodecContext *CodecCtx, FILE *fin, FILE *fout, AVFrame *frame, AVPacket *pkt) {
 
@@ -77,20 +75,37 @@ void pgm_save(unsigned char *buf, int wrap, int xsize, int ysize, FILE *f)
 		fwrite(buf + i * wrap, 1, xsize, f);
 }
 
-void displayFrame(AVFrame * frame, AVCodecContext *dec_ctx)
+void displayFrame(AVFrame * frame, AVCodecContext *dec_ctx, int &firstFrame, double &timeBase, double &frameDuration, Uint32 &lTime, Uint32 &elapsed)
 {
 	// pass frame data to texture then copy texture to renderer and present renderer
 	SDL_UpdateYUVTexture(texture, &r, frame->data[0], frame->linesize[0], frame->data[1], frame->linesize[1], frame->data[2], frame->linesize[2]);
 	SDL_RenderClear(renderer);
 	SDL_RenderCopy(renderer, texture, NULL, NULL);
 	SDL_RenderPresent(renderer);
-	SDL_Event event;
-	SDL_PollEvent(&event);
+
+	if (!firstFrame) {
+		SDL_Delay((Uint32)((frame->pts - frameDuration) * timeBase));
+		lTime = SDL_GetTicks();
+		frameDuration = frame->pts;
+		firstFrame = 1;
+	}
+	else {
+		elapsed = SDL_GetTicks() - lTime;
+		if (elapsed < (Uint32)((frame->pts - frameDuration) * timeBase * 1000)) {
+			//linux
+			//usleep((Uint32)(((frame->pts - frameDuration) * timeBase * 1000) - elapsed) * 1000);
+			std::this_thread::sleep_for(std::chrono::microseconds((Uint32)(((frame->pts - frameDuration) * timeBase * 1000) - elapsed) * 1000));
+			//printf(" %d ", (Uint32)(((frame->pts - frameDuration) * timeBase * 1000) - elapsed));
+		}
+		
+		lTime = SDL_GetTicks();
+		frameDuration = frame->pts;
+	}
+
 }
 
 
-
-void decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, FILE *f, double frameDuration, time_t &lastTime, time_t &timeNow, int &firstFrame, double &timeBase)
+void decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, FILE *f, double &frameDuration, int &firstFrame, double &timeBase, Uint32 &lTime, Uint32 &elapsed)
 {
 	int ret;
 
@@ -111,32 +126,13 @@ void decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, FILE *f, dou
 			fprintf(stderr, "Error during decoding\n");
 			exit(1);
 		}
-		printf("processing frame %3d\n", dec_ctx->frame_number);
+		//printf("processing frame %3d\n", dec_ctx->frame_number);
 		fflush(stdout);
 
 
 		// display frame on sdl window
-		displayFrame(frame, dec_ctx);
+		displayFrame(frame, dec_ctx, firstFrame, timeBase, frameDuration, lTime, elapsed);
 		
-		
-		printf("%d  ", frame->pts);
-		if (frame->pts == frame->pkt_dts) {
-			printf("%d  ", frame->pkt_dts);
-		}
-		printf("%f  ", timeBase);
-		localtime(&timeNow);
-		if (!firstFrame) {
-			timeDifference = difftime(lastTime, timeNow);
-			if ((frame->pts - timeElapsed) > timeDifference) {
-				Sleep((frame->pts - timeElapsed - timeDifference)  * timeBase * 1000  - 4);//not sure where this 4ms delay is from, localtime and thread time different? 
-			}
-		}
-
-		firstFrame = 0;
-		localtime(&lastTime);
-
-		timeElapsed = frame->pts;
-
 	}
 }
 
@@ -194,8 +190,9 @@ DWORD WINAPI playVideo(void* data) {
 	int firstFrame = 1;
 	int VideoStreamIndex = -1;
 	double frameDuration = 0;
-	timeElapsed = 0;
-	timeBase = 0.001;
+	Uint32 lTime;
+	Uint32 elapsed;
+	double timeBase = 0.001;
 	
 	FILE *fin = NULL;
 	FILE *fout = NULL;
@@ -332,7 +329,7 @@ DWORD WINAPI playVideo(void* data) {
 		// if packet data is video data then send it to decoder
 		if (pkt->stream_index == VideoStreamIndex)
 		{
-			decode(codecCtx, frame, pkt, fout, frameDuration, lastTime, timeNow, firstFrame, timeBase);
+			decode(codecCtx, frame, pkt, fout, frameDuration, firstFrame, timeBase, lTime, elapsed);
 		}
 
 		// release packet buffers to be allocated again
@@ -341,7 +338,7 @@ DWORD WINAPI playVideo(void* data) {
 	}
 
 	//flush decoder
-	decode(codecCtx, frame, pkt, fout, frameDuration, lastTime, timeNow, firstFrame, timeBase);
+	decode(codecCtx, frame, pktdecode(codecCtx, frame, pkt, fout, frameDuration, firstFrame, timeBase, lTime, elapsed);, fout, frameDuration, lastTime, timeNow, firstFrame, timeBase);
 
 	cleanup(fmt_ctx, codecCtx, fin, fout, frame, pkt);
 
