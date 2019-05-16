@@ -8,9 +8,15 @@
 
 /* Begin PBXBuildFile section */
 		B776FBC4228937CB00C3AC47 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B776FBC3228937CB00C3AC47 /* main.cpp */; };
-		B776FBD022893A8300C3AC47 /* libSDL2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = B776FBCF22893A8300C3AC47 /* libSDL2.dylib */; };
-		B776FBD222893AAA00C3AC47 /* libavcodec.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = B776FBD122893AAA00C3AC47 /* libavcodec.dylib */; };
-		B776FBD722893B1C00C3AC47 /* libavformat.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = B776FBD622893B1C00C3AC47 /* libavformat.dylib */; };
+		B7E8DCB7228A0C1500D8AD51 /* libavformat.58.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = B7E8DCB6228A0C1500D8AD51 /* libavformat.58.dylib */; };
+		B7E8DCB9228A0C2D00D8AD51 /* libavcodec.58.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = B7E8DCB8228A0C2D00D8AD51 /* libavcodec.58.dylib */; };
+		DB6D34CA228A2E6F00A514E1 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DB6D34C9228A2E6F00A514E1 /* Carbon.framework */; };
+		DB6D34CC228A2E7700A514E1 /* CoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DB6D34CB228A2E7700A514E1 /* CoreServices.framework */; };
+		DB6D34CE228A2E8000A514E1 /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DB6D34CD228A2E8000A514E1 /* AudioToolbox.framework */; };
+		DB6D34D0228A2E8700A514E1 /* CoreAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DB6D34CF228A2E8700A514E1 /* CoreAudio.framework */; };
+		DB6D34D2228A2FD400A514E1 /* libportaudio.2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = DB6D34D1228A2FD400A514E1 /* libportaudio.2.dylib */; };
+		DB6D34D4228A2FE600A514E1 /* libsndfile.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = DB6D34D3228A2FE600A514E1 /* libsndfile.1.dylib */; };
+		DB969665228A18F500C6AE3B /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DB969664228A18F500C6AE3B /* SDL2.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -28,11 +34,15 @@
 /* Begin PBXFileReference section */
 		B776FBC0228937CB00C3AC47 /* EmplaceAV */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = EmplaceAV; sourceTree = BUILT_PRODUCTS_DIR; };
 		B776FBC3228937CB00C3AC47 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
-		B776FBCB2289399E00C3AC47 /* sdl2-config */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = "sdl2-config"; path = "bin/sdl2-config"; sourceTree = "<group>"; };
-		B776FBCF22893A8300C3AC47 /* libSDL2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libSDL2.dylib; path = lib/libSDL2.dylib; sourceTree = "<group>"; };
-		B776FBD122893AAA00C3AC47 /* libavcodec.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libavcodec.dylib; path = lib/libavcodec.dylib; sourceTree = "<group>"; };
-		B776FBD422893ADC00C3AC47 /* libavformat.58.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libavformat.58.dylib; path = lib/libavformat.58.dylib; sourceTree = "<group>"; };
-		B776FBD622893B1C00C3AC47 /* libavformat.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libavformat.dylib; path = lib/libavformat.dylib; sourceTree = "<group>"; };
+		B7E8DCB6228A0C1500D8AD51 /* libavformat.58.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libavformat.58.dylib; path = lib/libavformat.58.dylib; sourceTree = "<group>"; };
+		B7E8DCB8228A0C2D00D8AD51 /* libavcodec.58.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libavcodec.58.dylib; path = lib/libavcodec.58.dylib; sourceTree = "<group>"; };
+		DB6D34C9228A2E6F00A514E1 /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = System/Library/Frameworks/Carbon.framework; sourceTree = SDKROOT; };
+		DB6D34CB228A2E7700A514E1 /* CoreServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreServices.framework; path = System/Library/Frameworks/CoreServices.framework; sourceTree = SDKROOT; };
+		DB6D34CD228A2E8000A514E1 /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
+		DB6D34CF228A2E8700A514E1 /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
+		DB6D34D1228A2FD400A514E1 /* libportaudio.2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libportaudio.2.dylib; path = lib/libportaudio.2.dylib; sourceTree = "<group>"; };
+		DB6D34D3228A2FE600A514E1 /* libsndfile.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libsndfile.1.dylib; path = lib/libsndfile.1.dylib; sourceTree = "<group>"; };
+		DB969664228A18F500C6AE3B /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2.framework; path = lib/SDL2.framework; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -40,9 +50,15 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B776FBD722893B1C00C3AC47 /* libavformat.dylib in Frameworks */,
-				B776FBD222893AAA00C3AC47 /* libavcodec.dylib in Frameworks */,
-				B776FBD022893A8300C3AC47 /* libSDL2.dylib in Frameworks */,
+				DB6D34D4228A2FE600A514E1 /* libsndfile.1.dylib in Frameworks */,
+				DB6D34D2228A2FD400A514E1 /* libportaudio.2.dylib in Frameworks */,
+				DB6D34D0228A2E8700A514E1 /* CoreAudio.framework in Frameworks */,
+				DB6D34CE228A2E8000A514E1 /* AudioToolbox.framework in Frameworks */,
+				DB6D34CC228A2E7700A514E1 /* CoreServices.framework in Frameworks */,
+				DB6D34CA228A2E6F00A514E1 /* Carbon.framework in Frameworks */,
+				DB969665228A18F500C6AE3B /* SDL2.framework in Frameworks */,
+				B7E8DCB9228A0C2D00D8AD51 /* libavcodec.58.dylib in Frameworks */,
+				B7E8DCB7228A0C1500D8AD51 /* libavformat.58.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -77,11 +93,15 @@
 		B776FBCA2289399D00C3AC47 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				B776FBD622893B1C00C3AC47 /* libavformat.dylib */,
-				B776FBD422893ADC00C3AC47 /* libavformat.58.dylib */,
-				B776FBD122893AAA00C3AC47 /* libavcodec.dylib */,
-				B776FBCF22893A8300C3AC47 /* libSDL2.dylib */,
-				B776FBCB2289399E00C3AC47 /* sdl2-config */,
+				DB6D34D3228A2FE600A514E1 /* libsndfile.1.dylib */,
+				DB6D34D1228A2FD400A514E1 /* libportaudio.2.dylib */,
+				DB6D34CF228A2E8700A514E1 /* CoreAudio.framework */,
+				DB6D34CD228A2E8000A514E1 /* AudioToolbox.framework */,
+				DB6D34CB228A2E7700A514E1 /* CoreServices.framework */,
+				DB6D34C9228A2E6F00A514E1 /* Carbon.framework */,
+				DB969664228A18F500C6AE3B /* SDL2.framework */,
+				B7E8DCB8228A0C2D00D8AD51 /* libavcodec.58.dylib */,
+				B7E8DCB6228A0C1500D8AD51 /* libavformat.58.dylib */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -242,7 +262,13 @@
 		B776FBC8228937CB00C3AC47 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				FRAMEWORK_SEARCH_PATHS = (
+					bin/,
+					"$(PROJECT_DIR)/lib",
+				);
 				HEADER_SEARCH_PATHS = include/;
+				INSTALL_PATH = "@rpath";
+				LD_RUNPATH_SEARCH_PATHS = "@rpath/ @executable_path/";
 				LIBRARY_SEARCH_PATHS = (
 					lib/,
 					"$(PROJECT_DIR)/lib",
@@ -254,7 +280,13 @@
 		B776FBC9228937CB00C3AC47 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				FRAMEWORK_SEARCH_PATHS = (
+					bin/,
+					"$(PROJECT_DIR)/lib",
+				);
 				HEADER_SEARCH_PATHS = include/;
+				INSTALL_PATH = "@rpath";
+				LD_RUNPATH_SEARCH_PATHS = "@rpath/ @executable_path/";
 				LIBRARY_SEARCH_PATHS = (
 					lib/,
 					"$(PROJECT_DIR)/lib",

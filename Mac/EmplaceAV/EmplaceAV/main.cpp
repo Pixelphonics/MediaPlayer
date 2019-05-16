@@ -1,8 +1,16 @@
 #define _CRT_SECURE_NO_WARNINGS
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <ctime>
 #include <unistd.h>
+#include <libportaudio/portaudio.h>
+#include <libportaudio/sndfile.h>
+#include <sys/types.h>
+#include <libportaudio/pa_mac_core.h>
+#include <dirent.h>
+#include <pthread.h>
+#include <cstring>
 
 extern "C"
 {
@@ -13,16 +21,30 @@ extern "C"
 
 #undef main
 
+#define NUM_SECONDS   (5)
+#define FRAMES_PER_BUFFER  (512)
+#define NUM_CHANNELS (32)
+
+typedef struct
+{
+    SNDFILE *file[NUM_CHANNELS];
+    SF_INFO info[NUM_CHANNELS];
+}
+paData;
+
 void cleanup(AVFormatContext *fmt_ctx, AVCodecContext *CodecCtx, FILE *fin, FILE *fout, AVFrame *frame, AVPacket *pkt);
 void pgm_save(unsigned char *buf, int wrap, int xsize, int ysize, FILE *f);
-void decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, FILE *f, double frameDuration, time_t &lastTime, time_t &timeNow, int &firstFrame);
+void decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, FILE *f, double frameDuration, time_t &lastTime, time_t &timeNow, int &firstFrame, double &timeBase);
 void displayFrame(AVFrame * frame, AVCodecContext *dec_ctx);
 int initSDL(AVCodecContext *codec_ctx);
-
+void *audio_function( void *ptr );
 
 SDL_Renderer *renderer;
 SDL_Texture *texture;
 SDL_Rect r;
+int timeElapsed;
+int timeDifference;
+double timeBase;
 
 void cleanup(AVFormatContext *fmt_ctx, AVCodecContext *CodecCtx, FILE *fin, FILE *fout, AVFrame *frame, AVPacket *pkt) {
     
@@ -63,10 +85,29 @@ void displayFrame(AVFrame * frame, AVCodecContext *dec_ctx)
     SDL_RenderPresent(renderer);
     SDL_Event event;
     SDL_PollEvent(&event);
+    
+    if (!firstFrame) {
+		SDL_Delay((Uint32)((frame->pts - frameDuration) * timeBase));
+		lTime = SDL_GetTicks();
+		frameDuration = frame->pts;
+		firstFrame = 1;
+	}
+	else {
+		elapsed = SDL_GetTicks() - lTime;
+		if (elapsed < (Uint32)((frame->pts - frameDuration) * timeBase * 1000)) {
+			//linux
+			usleep((Uint32)(((frame->pts - frameDuration) * timeBase * 1000) - elapsed) * 1000);
+			//std::this_thread::sleep_for(std::chrono::microseconds((Uint32)(((frame->pts - frameDuration) * timeBase * 1000) - elapsed) * 1000));
+			//printf(" %d ", (Uint32)(((frame->pts - frameDuration) * timeBase * 1000) - elapsed));
+		}
+		
+		lTime = SDL_GetTicks();
+		frameDuration = frame->pts;
+	}
 }
 
 
-void decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, FILE *f, double frameDuration, time_t &lastTime, time_t &timeNow, int &firstFrame)
+void decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, FILE *f, double frameDuration, time_t &lastTime, time_t &timeNow, int &firstFrame, double &timeBase)
 {
     int ret;
     
@@ -94,9 +135,25 @@ void decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, FILE *f, dou
         // display frame on sdl window
         displayFrame(frame, dec_ctx);
         
-        // control this sleep to pace the playback
-        usleep(20000);
         
+//        printf("%d  ", frame->pts);
+//        if (frame->pts == frame->pkt_dts) {
+//            printf("%d  ", frame->pkt_dts);
+//        }
+//        printf("%f  ", timeBase);
+//        localtime(&timeNow);
+//        if (!firstFrame) {
+//            timeDifference = difftime(lastTime, timeNow);
+//            if ((frame->pts - timeElapsed) > (timeDifference * 0.0000001)) {
+//                usleep(((frame->pts - timeElapsed - timeDifference * 0.0000001) * timeBase * 1000) * 1000);//not sure where this 4ms delay is from, localtime and thread time different?
+//            }
+//        }
+//
+//        firstFrame = 0;
+//        localtime(&lastTime);
+//
+//        timeElapsed = frame->pts;
+        //usleep(29000);
     }
 }
 
@@ -113,7 +170,7 @@ int initSDL(AVCodecContext *codec_ctx)
     }
     
     //create sdl window
-    window = SDL_CreateWindow("Preview", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, codec_ctx->width, codec_ctx->height, 0);
+    window = SDL_CreateWindow("Preview", 3840, SDL_WINDOWPOS_UNDEFINED, codec_ctx->width, codec_ctx->height, SDL_WINDOW_FULLSCREEN_DESKTOP);
     if (!window)
     {
         fprintf(stderr, "could not create sdl window \n");
@@ -145,8 +202,163 @@ int initSDL(AVCodecContext *codec_ctx)
     return 0;
 }
 
+// portaudio functions
+static int paStreamCallback(const void *inputBuffer, void *outputBuffer,
+                            unsigned long framesPerBuffer,
+                            const PaStreamCallbackTimeInfo* timeInfo,
+                            PaStreamCallbackFlags statusFlags,
+                            void *userData)
+{
+    paData *data = (paData*)userData;
+    float **out = (float**)outputBuffer;
+    unsigned long j;
+    sf_count_t num_read;
+    
+    (void)timeInfo; /* Prevent unused variable warnings. */
+    (void)statusFlags;
+    (void)inputBuffer;
+    
+    
+    for (j = 0; j < NUM_CHANNELS; ++j) {
+        
+        /* clear output buffer */
+        memset(out[j], 0, sizeof(float) * framesPerBuffer * data->info[j].channels);
+        
+        /* read directly into output buffer */
+        num_read = sf_read_float(data->file[j], out[j], framesPerBuffer * data->info[j].channels);
+        
+        /* If we couldn't read a full frameCount of samples we've reached EOF */
+        if (num_read < framesPerBuffer)
+        {
+            return paComplete;
+        }
+    }
+    
+    return paContinue;
+}
+
+void *audio_function( void *ptr ){
+    // Pa variables
+    PaStreamParameters outputParameters;
+    PaStream *stream;
+    PaError err;
+    paData data;
+    
+    //Utility variables
+    int i = 0;
+    
+    // File IO variables
+    const char* path = "./"; ///Users/allanhsu/Downloads/Audio WAV and Quicktime Video Files
+    int opened = 0;
+    
+    /* Open the soundfile */
+    for (int i = 0; i < NUM_CHANNELS; i++) {
+        char file[7];
+        sprintf(file, "%d", i + 1);
+        strcat(file, ".wav");
+        data.file[i] = sf_open(file, SFM_READ, &data.info[i]);
+        if (sf_error(data.file[i]) != SF_ERR_NO_ERROR) {
+            fprintf(stderr, "%s\n", sf_strerror(data.file[i]));
+            fprintf(stderr, "File: %s\n", file);
+        }
+    }
+    /*
+    if (opened < NUM_CHANNELS) {
+        for (i = 0; i < opened; ++i) {
+            sf_close(data.file[i]);
+        }
+        printf("need at least %d wav files.", NUM_CHANNELS);
+        getchar();
+        return (void *) 0;
+    }
+    */
+#ifdef __APPLE__
+    PaMacCoreStreamInfo macInfo;
+    //const SInt32 channelMap[NUM_CHANNELS] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31};
+    //const SInt32 channelMap[NUM_CHANNELS] = { 0,1 };
+#endif
+    
+    err = Pa_Initialize();
+    if (err != paNoError) goto error;
+    
+    printf("Pa Initialized... \n");
+    
+    /** setup host specific info */
+#ifdef __APPLE__
+    PaMacCore_SetupStreamInfo(&macInfo, paMacCorePlayNice);
+    //PaMacCore_SetupChannelMap(&macInfo, channelMap, NUM_CHANNELS);
+    printf("PaMacCore ChannelMap set. \n");
+    outputParameters.hostApiSpecificStreamInfo = &macInfo;
+#else
+    printf("Channel mapping not supported on this platform. Using windows Settings.\n");
+    outputParameters.hostApiSpecificStreamInfo = NULL;
+#endif
+    
+    /* outputParameters regardless of host */
+    outputParameters.device = Pa_GetDefaultOutputDevice(); /* default output device */
+    if (outputParameters.device == paNoDevice) {
+        fprintf(stderr, "Error: No default output device.\n");
+        goto error;
+    }
+    outputParameters.channelCount = NUM_CHANNELS; /* 32 channels output */
+    outputParameters.sampleFormat = paFloat32 | paNonInterleaved; /* 32 bit floating point output */
+    outputParameters.suggestedLatency = Pa_GetDeviceInfo(outputParameters.device)->defaultHighOutputLatency;
+    
+    
+    /* Open PaStream with values read from the file */
+    err = Pa_OpenStream(
+                        &stream,
+                        NULL, /* no input */
+                        &outputParameters,
+                        Pa_GetDeviceInfo(outputParameters.device)->defaultSampleRate ,
+                        FRAMES_PER_BUFFER,
+                        paClipOff,      /* we won't output out of range samples so don't bother clipping them */
+                        paStreamCallback,
+                        &data);
+    if (err != paNoError) goto error;
+    
+    /* Starts Stream here */
+    err = Pa_StartStream(stream);
+    if (err != paNoError) goto error;
+    
+    /* Wait for the whole duration of file to finish playing */
+    while (Pa_IsStreamActive(stream)) {
+        Pa_Sleep(100);
+    }
+    
+    /* Closes all opened audio files */
+    for (i = 0; i < NUM_CHANNELS; ++i) {
+        sf_close(data.file[i]);
+    }
+    
+    /*  Shuts down portaudio */
+    err = Pa_CloseStream(stream);
+    if (err != paNoError) goto error;
+    
+    Pa_Terminate();
+    if (err != paNoError) goto error;
+    
+    printf("Playback completes!\n");
+    printf("Enter any key to exit program.");
+    getchar();
+    
+    return 0;
+error:
+    Pa_Terminate();
+    fprintf(stderr, "An error occured while using the portaudio stream\n");
+    fprintf(stderr, "Error number: %d\n", err);
+    fprintf(stderr, "Error message: %s\n", Pa_GetErrorText(err));
+    
+    printf("Enter any key to exit program.");
+    getchar();
+    
+    return (void *) 0;
+}
+
 
 int main() {
+    pthread_t thread1;
+    pthread_create( &thread1, NULL, audio_function, NULL);
     
     const char *file = "onmyway.mp4";
     const char *outfile = "test.yuv";
@@ -156,6 +368,8 @@ int main() {
     int firstFrame = 1;
     int VideoStreamIndex = -1;
     double frameDuration = 0;
+    timeBase = 0.001;
+    timeElapsed = 0;
     
     FILE *fin = NULL;
     FILE *fout = NULL;
@@ -200,6 +414,7 @@ int main() {
     
     videoFPS = av_q2d(fmt_ctx->streams[VideoStreamIndex]->r_frame_rate);
     frameDuration = 1000.0 / videoFPS;
+    timeBase = av_q2d(fmt_ctx->streams[VideoStreamIndex]->time_base);
     printf("fps is %d\n", videoFPS);
     
     // dump video stream info
@@ -300,7 +515,7 @@ int main() {
         // if packet data is video data then send it to decoder
         if (pkt->stream_index == VideoStreamIndex)
         {
-            decode(codecCtx, frame, pkt, fout, frameDuration, lastTime, timeNow, firstFrame);
+            decode(codecCtx, frame, pkt, fout, frameDuration, lastTime, timeNow, firstFrame, timeBase);
             
         }
         
@@ -310,10 +525,11 @@ int main() {
     }
     
     //flush decoder
-    decode(codecCtx, frame, pkt, fout, frameDuration, lastTime, timeNow, firstFrame);
+    decode(codecCtx, frame, pkt, fout, frameDuration, lastTime, timeNow, firstFrame, timeBase);
     
-    cleanup(fmt_ctx, codecCtx, fin, fout, frame, pkt);
+    cleanup(fmt_ctx, codecCtx, fin, fout, frame, pkt);    
     
+    pthread_join( thread1, NULL);
     return 0;
 }
 
