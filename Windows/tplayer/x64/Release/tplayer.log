@@ -1,16 +1,21 @@
-﻿  Source.cpp
-d:\tech\mediaplayer\windows\tplayer\source.cpp(121): warning C4477: 'printf' : format string '%d' requires an argument of type 'int', but variadic argument 1 has type 'int64_t'
-  d:\tech\mediaplayer\windows\tplayer\source.cpp(121): note: consider using '%lld' in the format string
-  d:\tech\mediaplayer\windows\tplayer\source.cpp(121): note: consider using '%Id' in the format string
-  d:\tech\mediaplayer\windows\tplayer\source.cpp(121): note: consider using '%I64d' in the format string
-d:\tech\mediaplayer\windows\tplayer\source.cpp(125): warning C4244: '=': conversion from 'double' to 'int', possible loss of data
-d:\tech\mediaplayer\windows\tplayer\source.cpp(127): warning C4244: 'argument': conversion from 'int64_t' to 'DWORD', possible loss of data
-d:\tech\mediaplayer\windows\tplayer\source.cpp(134): warning C4244: '=': conversion from 'int64_t' to 'int', possible loss of data
-d:\tech\mediaplayer\windows\tplayer\source.cpp(218): warning C4018: '<': signed/unsigned mismatch
-d:\tech\mediaplayer\windows\tplayer\source.cpp(233): warning C4244: '=': conversion from 'double' to 'int', possible loss of data
+﻿C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\IDE\VC\VCTargets\Microsoft.CppBuild.targets(391,5): warning MSB8028: The intermediate directory (x64\Release\) contains files shared from another project (tplayer.vcxproj).  This can lead to incorrect clean and rebuild behavior.
+  Source.cpp
+d:\tech\mediaplayer\windows\tplayer\source.cpp(94): warning C4244: '=': conversion from 'int64_t' to 'double', possible loss of data
+d:\tech\mediaplayer\windows\tplayer\source.cpp(109): warning C4244: '=': conversion from 'int64_t' to 'double', possible loss of data
+d:\tech\mediaplayer\windows\tplayer\source.cpp(226): warning C4018: '<': signed/unsigned mismatch
+d:\tech\mediaplayer\windows\tplayer\source.cpp(242): warning C4244: '=': conversion from 'double' to 'int', possible loss of data
+d:\tech\mediaplayer\windows\tplayer\source.cpp(205): warning C4101: 'lastTime': unreferenced local variable
+d:\tech\mediaplayer\windows\tplayer\source.cpp(204): warning C4101: 'timeNow': unreferenced local variable
+d:\tech\mediaplayer\windows\tplayer\source.cpp(376): warning C4018: '<': signed/unsigned mismatch
+d:\tech\mediaplayer\windows\tplayer\source.cpp(500): warning C4473: 'fprintf' : not enough arguments passed for format string
+  d:\tech\mediaplayer\windows\tplayer\source.cpp(500): note: placeholders and their parameters expect 1 variadic arguments, but 0 were provided
+  d:\tech\mediaplayer\windows\tplayer\source.cpp(500): note: the missing variadic argument 1 is required by format string '%s'
+d:\tech\mediaplayer\windows\tplayer\source.cpp(566): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+d:\tech\mediaplayer\windows\tplayer\source.cpp(639): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+d:\tech\mediaplayer\windows\tplayer\source.cpp(677): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
   Generating code
-  1 of 31 functions ( 3.2%) were compiled, the rest were copied from previous compilation.
-    0 functions were new in current compilation
-    1 functions had inline decision re-evaluated but remain unchanged
+  39 of 40 functions (97.5%) were compiled, the rest were copied from previous compilation.
+    29 functions were new in current compilation
+    0 functions had inline decision re-evaluated but remain unchanged
   Finished generating code
-  tplayer.vcxproj -> D:\Tech\MediaPlayer\Windows\\bin\tplayer.exe
+  tplayer.vcxproj -> D:\Tech\MediaPlayer\Windows\\bin\s.exe
