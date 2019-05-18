@@ -1,4 +1,5 @@
 #define _CRT_SECURE_NO_WARNINGS
+#define _CRT_NONSTDC_NO_DEPRECATE
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,6 +12,7 @@
 #include <dirent.h>
 #include <pthread.h>
 #include <cstring>
+#include <Headers/SDL_ttf.h>
 
 extern "C"
 {
@@ -34,17 +36,17 @@ paData;
 
 void cleanup(AVFormatContext *fmt_ctx, AVCodecContext *CodecCtx, FILE *fin, FILE *fout, AVFrame *frame, AVPacket *pkt);
 void pgm_save(unsigned char *buf, int wrap, int xsize, int ysize, FILE *f);
-void decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, FILE *f, double frameDuration, time_t &lastTime, time_t &timeNow, int &firstFrame, double &timeBase);
-void displayFrame(AVFrame * frame, AVCodecContext *dec_ctx);
+void decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, FILE *f, double &frameDuration, int &firstFrame, double &timeBase, Uint32 &lTime, Uint32 &elapsed);
+void displayFrame(AVFrame * frame, AVCodecContext *dec_ctx, int &firstFrame, double &timeBase, double &frameDuration, Uint32 &lTime, Uint32 &elapsed);
 int initSDL(AVCodecContext *codec_ctx);
 void *audio_function( void *ptr );
 
 SDL_Renderer *renderer;
 SDL_Texture *texture;
 SDL_Rect r;
-int timeElapsed;
-int timeDifference;
-double timeBase;
+float volume = 50;
+int positionX = 0;
+int positionY = 0;
 
 void cleanup(AVFormatContext *fmt_ctx, AVCodecContext *CodecCtx, FILE *fin, FILE *fout, AVFrame *frame, AVPacket *pkt) {
     
@@ -76,7 +78,7 @@ void pgm_save(unsigned char *buf, int wrap, int xsize, int ysize, FILE *f)
         fwrite(buf + i * wrap, 1, xsize, f);
 }
 
-void displayFrame(AVFrame * frame, AVCodecContext *dec_ctx)
+void displayFrame(AVFrame * frame, AVCodecContext *dec_ctx, int &firstFrame, double &timeBase, double &frameDuration, Uint32 &lTime, Uint32 &elapsed)
 {
     // pass frame data to texture then copy texture to renderer and present renderer
     SDL_UpdateYUVTexture(texture, &r, frame->data[0], frame->linesize[0], frame->data[1], frame->linesize[1], frame->data[2], frame->linesize[2]);
@@ -87,27 +89,27 @@ void displayFrame(AVFrame * frame, AVCodecContext *dec_ctx)
     SDL_PollEvent(&event);
     
     if (!firstFrame) {
-		SDL_Delay((Uint32)((frame->pts - frameDuration) * timeBase));
-		lTime = SDL_GetTicks();
-		frameDuration = frame->pts;
-		firstFrame = 1;
-	}
-	else {
-		elapsed = SDL_GetTicks() - lTime;
-		if (elapsed < (Uint32)((frame->pts - frameDuration) * timeBase * 1000)) {
-			//linux
-			usleep((Uint32)(((frame->pts - frameDuration) * timeBase * 1000) - elapsed) * 1000);
-			//std::this_thread::sleep_for(std::chrono::microseconds((Uint32)(((frame->pts - frameDuration) * timeBase * 1000) - elapsed) * 1000));
-			//printf(" %d ", (Uint32)(((frame->pts - frameDuration) * timeBase * 1000) - elapsed));
-		}
-		
-		lTime = SDL_GetTicks();
-		frameDuration = frame->pts;
-	}
+        SDL_Delay((Uint32)((frame->best_effort_timestamp - frameDuration) * timeBase));
+        lTime = SDL_GetTicks();
+        frameDuration = frame->best_effort_timestamp;
+        firstFrame = 1;
+    }
+    else {
+        elapsed = SDL_GetTicks() - lTime;
+        if (elapsed < (Uint32)((frame->best_effort_timestamp - frameDuration) * timeBase * 1000)) {
+            //linux
+            usleep((Uint32)(((frame->pts - frameDuration) * timeBase * 1000) - elapsed) * 1000);
+            //std::this_thread::sleep_for(std::chrono::microseconds((Uint32)(((frame->pts - frameDuration) * timeBase * 1000) - elapsed) * 1000));
+            //printf(" %d ", (Uint32)(((frame->pts - frameDuration) * timeBase * 1000) - elapsed));
+        }
+        
+        lTime = SDL_GetTicks();
+        frameDuration = frame->best_effort_timestamp;
+    }
 }
 
 
-void decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, FILE *f, double frameDuration, time_t &lastTime, time_t &timeNow, int &firstFrame, double &timeBase)
+void decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, FILE *f, double &frameDuration, int &firstFrame, double &timeBase, Uint32 &lTime, Uint32 &elapsed)
 {
     int ret;
     
@@ -128,32 +130,13 @@ void decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, FILE *f, dou
             fprintf(stderr, "Error during decoding\n");
             exit(1);
         }
-        printf("processing frame %3d\n", dec_ctx->frame_number);
+        //printf("processing frame %3d\n", dec_ctx->frame_number);
         fflush(stdout);
         
         
         // display frame on sdl window
-        displayFrame(frame, dec_ctx);
+        displayFrame(frame, dec_ctx, firstFrame, timeBase, frameDuration, lTime, elapsed);
         
-        
-//        printf("%d  ", frame->pts);
-//        if (frame->pts == frame->pkt_dts) {
-//            printf("%d  ", frame->pkt_dts);
-//        }
-//        printf("%f  ", timeBase);
-//        localtime(&timeNow);
-//        if (!firstFrame) {
-//            timeDifference = difftime(lastTime, timeNow);
-//            if ((frame->pts - timeElapsed) > (timeDifference * 0.0000001)) {
-//                usleep(((frame->pts - timeElapsed - timeDifference * 0.0000001) * timeBase * 1000) * 1000);//not sure where this 4ms delay is from, localtime and thread time different?
-//            }
-//        }
-//
-//        firstFrame = 0;
-//        localtime(&lastTime);
-//
-//        timeElapsed = frame->pts;
-        //usleep(29000);
     }
 }
 
@@ -170,7 +153,7 @@ int initSDL(AVCodecContext *codec_ctx)
     }
     
     //create sdl window
-    window = SDL_CreateWindow("Preview", 3840, SDL_WINDOWPOS_UNDEFINED, codec_ctx->width, codec_ctx->height, SDL_WINDOW_FULLSCREEN_DESKTOP);
+    window = SDL_CreateWindow("Preview", positionX, positionY, codec_ctx->width, codec_ctx->height, SDL_WINDOW_FULLSCREEN_DESKTOP);
     if (!window)
     {
         fprintf(stderr, "could not create sdl window \n");
@@ -209,25 +192,28 @@ static int paStreamCallback(const void *inputBuffer, void *outputBuffer,
                             PaStreamCallbackFlags statusFlags,
                             void *userData)
 {
-    paData *data = (paData*)userData;
-    float **out = (float**)outputBuffer;
-    unsigned long j;
+    float **out;
+    paData *p_data = (paData *)userData;
     sf_count_t num_read;
     
-    (void)timeInfo; /* Prevent unused variable warnings. */
-    (void)statusFlags;
-    (void)inputBuffer;
+    out = (float **)outputBuffer;
+    p_data = (paData *)userData;
     
-    
-    for (j = 0; j < NUM_CHANNELS; ++j) {
-        
+    for (int i = 0; i < NUM_CHANNELS; i++)
+    {
         /* clear output buffer */
-        memset(out[j], 0, sizeof(float) * framesPerBuffer * data->info[j].channels);
+        memset(out[i], 0, sizeof(float) * framesPerBuffer * p_data->info[i].channels);
         
         /* read directly into output buffer */
-        num_read = sf_read_float(data->file[j], out[j], framesPerBuffer * data->info[j].channels);
+        num_read = sf_read_float(p_data->file[i], out[i], framesPerBuffer * p_data->info[i].channels);
         
-        /* If we couldn't read a full frameCount of samples we've reached EOF */
+        /* adjust the volume of the output */
+        for (int j = 0; j < framesPerBuffer; j++)
+        {
+            out[i][j] *= (volume / 100);
+        }
+        
+        /*  If we couldn't read a full frameCount of samples we've reached EOF */
         if (num_read < framesPerBuffer)
         {
             return paComplete;
@@ -247,9 +233,11 @@ void *audio_function( void *ptr ){
     //Utility variables
     int i = 0;
     
+    /*
     // File IO variables
     const char* path = "./"; ///Users/allanhsu/Downloads/Audio WAV and Quicktime Video Files
     int opened = 0;
+     */
     
     /* Open the soundfile */
     for (int i = 0; i < NUM_CHANNELS; i++) {
@@ -263,15 +251,15 @@ void *audio_function( void *ptr ){
         }
     }
     /*
-    if (opened < NUM_CHANNELS) {
-        for (i = 0; i < opened; ++i) {
-            sf_close(data.file[i]);
-        }
-        printf("need at least %d wav files.", NUM_CHANNELS);
-        getchar();
-        return (void *) 0;
-    }
-    */
+     if (opened < NUM_CHANNELS) {
+     for (i = 0; i < opened; ++i) {
+     sf_close(data.file[i]);
+     }
+     printf("need at least %d wav files.", NUM_CHANNELS);
+     getchar();
+     return (void *) 0;
+     }
+     */
 #ifdef __APPLE__
     PaMacCoreStreamInfo macInfo;
     //const SInt32 channelMap[NUM_CHANNELS] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31};
@@ -357,29 +345,47 @@ error:
 
 
 int main() {
-    pthread_t thread1;
-    pthread_create( &thread1, NULL, audio_function, NULL);
     
-    const char *file = "onmyway.mp4";
+    const char *file = "demo video.mp4";
     const char *outfile = "test.yuv";
     
     int ret = 0;
     int videoFPS = 0;
-    int firstFrame = 1;
+    int firstFrame = 0;
     int VideoStreamIndex = -1;
     double frameDuration = 0;
-    timeBase = 0.001;
-    timeElapsed = 0;
+    double timeBase = 0;
+    Uint32 lTime;
+    Uint32 elapsed;
     
     FILE *fin = NULL;
     FILE *fout = NULL;
-    time_t timeNow;
-    time_t lastTime;
     AVCodec *Codec = NULL;
     AVFrame *frame = NULL;
     AVPacket *pkt = NULL;
     AVCodecContext *codecCtx = NULL;
     AVFormatContext *fmt_ctx = NULL;
+    
+    SDL_Window *initWindow = NULL;
+    SDL_Renderer *renderer = NULL;
+    SDL_Event event;
+    SDL_Texture *playTextTexture = NULL;
+    SDL_Texture *volUpTextTexture = NULL;
+    SDL_Texture *volDownTextTexture = NULL;
+    SDL_Texture *volTextTexture = NULL;
+    SDL_Rect play;
+    SDL_Rect volUp;
+    SDL_Rect volDown;
+    SDL_Rect vol;
+    TTF_Font *font = NULL;
+    SDL_Surface *playTextSurface = NULL;
+    SDL_Surface *volUpTextSurface = NULL;
+    SDL_Surface *volDownTextSurface = NULL;
+    SDL_Surface *volTextSurface = NULL;
+    SDL_Color textColor = {0, 0, 0};
+    char volumeText[4];
+    
+    pthread_t thread1;
     
     ret = avformat_open_input(&fmt_ctx, file, NULL, NULL);
     
@@ -492,44 +498,267 @@ int main() {
         return -10;
     }
     
-    // init sdl
-    if (initSDL(codecCtx) < 0)
+    /* Init SDL */
+    if (SDL_Init(SDL_INIT_VIDEO) < 0)
     {
-        av_log(NULL, AV_LOG_ERROR, "init sdl failed\n");
-        cleanup(fmt_ctx, codecCtx, fin, fout, frame, pkt);
-        return -11;
+        fprintf(stderr, "could not init sdl %s\n", SDL_GetError());
+        return -1;
     }
     
-    
-    // main loop
-    while (1)
+    /* Init SDL TTF */
+    if (TTF_Init() == -1)
     {
-        // read an encoded packet from file
-        ret = av_read_frame(fmt_ctx, pkt);
-        
-        if (ret < 0)
-        {
-            av_log(NULL, AV_LOG_ERROR, "cannot read frame\n");
-            break;
-        }
-        // if packet data is video data then send it to decoder
-        if (pkt->stream_index == VideoStreamIndex)
-        {
-            decode(codecCtx, frame, pkt, fout, frameDuration, lastTime, timeNow, firstFrame, timeBase);
-            
-        }
-        
-        // release packet buffers to be allocated again
-        av_packet_unref(pkt);
-        
+        fprintf(stderr, "could not init sdl_ttf %s\n");
+        return -1;
     }
     
-    //flush decoder
-    decode(codecCtx, frame, pkt, fout, frameDuration, lastTime, timeNow, firstFrame, timeBase);
+    /* Create play window */
+    initWindow = SDL_CreateWindow("Emplace AV", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 280, 50, 0);
+    if (!initWindow)
+    {
+        fprintf(stderr, "could not create sdl window \n");
+        return -1;
+    }
     
-    cleanup(fmt_ctx, codecCtx, fin, fout, frame, pkt);    
+    /* Create renderer for window */
+    renderer = SDL_CreateRenderer(initWindow, -1, SDL_RENDERER_ACCELERATED);
+    if (!renderer)
+    {
+        fprintf(stderr, "could not create sdl renderer \n");
+        return -1;
+    }
     
-    pthread_join( thread1, NULL);
+    /* Get font */
+    font = TTF_OpenFont("font/font.ttf", 36);
+    if (!font)
+    {
+        fprintf(stderr, "could not create sdl font \n");
+        return -1;
+    }
+    
+    /* Set up text surface and text texture for each text entry */
+    playTextSurface = TTF_RenderText_Solid(font, "Play", textColor);
+    if (!playTextSurface)
+    {
+        fprintf(stderr, "could not create sdl text surface \n");
+    }
+    
+    playTextTexture = SDL_CreateTextureFromSurface(renderer, playTextSurface);
+    if (!playTextTexture)
+    {
+        fprintf(stderr, "could not create sdl text texture \n");
+    }
+    
+    volUpTextSurface = TTF_RenderText_Solid(font, "+", textColor);
+    if (!volUpTextSurface)
+    {
+        fprintf(stderr, "could not create sdl text surface \n");
+    }
+    
+    volUpTextTexture = SDL_CreateTextureFromSurface(renderer, volUpTextSurface);
+    if (!volUpTextTexture)
+    {
+        fprintf(stderr, "could not create sdl text texture \n");
+    }
+    
+    volDownTextSurface = TTF_RenderText_Solid(font, "-", textColor);
+    if (!volDownTextSurface)
+    {
+        fprintf(stderr, "could not create sdl text surface \n");
+    }
+    
+    volDownTextTexture = SDL_CreateTextureFromSurface(renderer, volDownTextSurface);
+    if (!volDownTextTexture)
+    {
+        fprintf(stderr, "could not create sdl text texture \n");
+    }
+    
+    /* Set the volume text */
+    sprintf(volumeText, "%d", (int)volume);
+    
+    
+    volTextSurface = TTF_RenderText_Solid(font, volumeText, textColor);
+    if (!volTextSurface)
+    {
+        fprintf(stderr, "could not create sdl text surface \n");
+    }
+    
+    volTextTexture = SDL_CreateTextureFromSurface(renderer, volTextSurface);
+    if (!volTextTexture)
+    {
+        fprintf(stderr, "could not create sdl text texture \n");
+    }
+    
+    SDL_QueryTexture(playTextTexture, NULL, NULL, &play.w, &play.h);
+    SDL_QueryTexture(volUpTextTexture, NULL, NULL, &volUp.w, &volUp.h);
+    SDL_QueryTexture(volDownTextTexture, NULL, NULL, &volDown.w, &volDown.h);
+    SDL_QueryTexture(volTextTexture, NULL, NULL, &vol.w, &vol.h);
+    
+    /* Set the x and y positions of the text */
+    play.x = 200;
+    play.y = 0;
+    volUp.x = 110;
+    volUp.y = 0;
+    volDown.x = 10;
+    volDown.y = 0;
+    vol.x = 35;
+    vol.y = 0;
+    
+    /* Render the window and text */
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_RenderClear(renderer);
+    SDL_RenderCopy(renderer, playTextTexture, NULL, &play);
+    SDL_RenderCopy(renderer, volUpTextTexture, NULL, &volUp);
+    SDL_RenderCopy(renderer, volDownTextTexture, NULL, &volDown);
+    SDL_RenderCopy(renderer, volTextTexture, NULL, &vol);
+    SDL_RenderPresent(renderer);
+    
+    while (initWindow)
+    {
+        if (SDL_WaitEvent(&event))
+        {
+            switch (event.type)
+            {
+                case SDL_QUIT:
+                    initWindow = NULL;
+                    break;
+                case SDL_MOUSEBUTTONDOWN:
+                    if (event.button.button == SDL_BUTTON_LEFT)
+                    {
+                        int x = event.button.x;
+                        int y = event.button.y;
+                        
+                        /* The play button is clicked */
+                        if ((x > play.x) && (x < play.x + play.w) && (y > play.y) && (y < play.y + play.h))
+                        {
+                            /* Destroy the play window before creating the video window */
+                            SDL_GetWindowPosition(initWindow, &positionX, &positionY);
+                            SDL_DestroyWindow(initWindow);
+                            SDL_DestroyRenderer(renderer);
+                            initWindow = NULL;
+                            
+                            // init sdl
+                            if (initSDL(codecCtx) < 0)
+                            {
+                                av_log(NULL, AV_LOG_ERROR, "init sdl failed\n");
+                                cleanup(fmt_ctx, codecCtx, fin, fout, frame, pkt);
+                                return -11;
+                            }
+                            
+                            pthread_create( &thread1, NULL, audio_function, NULL);
+                            
+                            // main loop
+                            while (1)
+                            {
+                                // read an encoded packet from file
+                                ret = av_read_frame(fmt_ctx, pkt);
+                                
+                                if (ret < 0)
+                                {
+                                    av_log(NULL, AV_LOG_ERROR, "cannot read frame\n");
+                                    break;
+                                }
+                                // if packet data is video data then send it to decoder
+                                if (pkt->stream_index == VideoStreamIndex)
+                                {
+                                    decode(codecCtx, frame, pkt, fout, frameDuration, firstFrame, timeBase, lTime, elapsed);
+                                }
+                                
+                                // release packet buffers to be allocated again
+                                av_packet_unref(pkt);
+                                
+                            }
+                            
+                            //flush decoder
+                            decode(codecCtx, frame, pkt, fout, frameDuration, firstFrame, timeBase, lTime, elapsed);
+                            
+                            cleanup(fmt_ctx, codecCtx, fin, fout, frame, pkt);
+                            
+                            pthread_join( thread1, NULL);
+                        }
+                        /* The volume up button is clicked */
+                        else if ((x > volUp.x) && (x < volUp.x + volUp.w) && (y > volUp.y) && (y < volUp.y + volUp.h) && (volume < 100))
+                        {
+                            volume++;
+                            sprintf(volumeText, "%d", (int)volume);
+                            
+                            volTextSurface = TTF_RenderText_Solid(font, volumeText, textColor);
+                            if (!volTextSurface)
+                            {
+                                fprintf(stderr, "could not create sdl text surface \n");
+                            }
+                            
+                            volTextTexture = SDL_CreateTextureFromSurface(renderer, volTextSurface);
+                            if (!volTextTexture)
+                            {
+                                fprintf(stderr, "could not create sdl text texture \n");
+                            }
+                            
+                            SDL_QueryTexture(volTextTexture, NULL, NULL, &vol.w, &vol.h);
+                            
+                            if (volume == 100)
+                            {
+                                vol.x = 35;
+                            }
+                            else
+                            {
+                                vol.x = 45;
+                            }
+                            vol.y = 0;
+                            
+                            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+                            SDL_RenderClear(renderer);
+                            SDL_RenderCopy(renderer, playTextTexture, NULL, &play);
+                            SDL_RenderCopy(renderer, volUpTextTexture, NULL, &volUp);
+                            SDL_RenderCopy(renderer, volDownTextTexture, NULL, &volDown);
+                            SDL_RenderCopy(renderer, volTextTexture, NULL, &vol);
+                            SDL_RenderPresent(renderer);
+                        }
+                        /* The volume down button is clicked */
+                        else if ((x > volDown.x) && (x < volDown.x + volDown.w) && (y > volDown.y) && (y < volDown.y + volDown.h) && (volume > 0))
+                        {
+                            volume--;
+                            sprintf(volumeText, "%d", (int)volume);
+                            
+                            volTextSurface = TTF_RenderText_Solid(font, volumeText, textColor);
+                            if (!volTextSurface)
+                            {
+                                fprintf(stderr, "could not create sdl text surface \n");
+                            }
+                            
+                            volTextTexture = SDL_CreateTextureFromSurface(renderer, volTextSurface);
+                            if (!volTextTexture)
+                            {
+                                fprintf(stderr, "could not create sdl text texture \n");
+                            }
+                            
+                            SDL_QueryTexture(volTextTexture, NULL, NULL, &vol.w, &vol.h);
+                            
+                            if (volume == 100)
+                            {
+                                vol.x = 35;
+                            }
+                            else
+                            {
+                                vol.x = 45;
+                            }
+                            vol.y = 0;
+                            
+                            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+                            SDL_RenderClear(renderer);
+                            SDL_RenderCopy(renderer, playTextTexture, NULL, &play);
+                            SDL_RenderCopy(renderer, volUpTextTexture, NULL, &volUp);
+                            SDL_RenderCopy(renderer, volDownTextTexture, NULL, &volDown);
+                            SDL_RenderCopy(renderer, volTextTexture, NULL, &vol);
+                            SDL_RenderPresent(renderer);
+                        }
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+    
     return 0;
 }
-

@@ -17,6 +17,7 @@
 		DB6D34D2228A2FD400A514E1 /* libportaudio.2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = DB6D34D1228A2FD400A514E1 /* libportaudio.2.dylib */; };
 		DB6D34D4228A2FE600A514E1 /* libsndfile.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = DB6D34D3228A2FE600A514E1 /* libsndfile.1.dylib */; };
 		DB969665228A18F500C6AE3B /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DB969664228A18F500C6AE3B /* SDL2.framework */; };
+		EC7F0C3D228F6D20003C4D50 /* SDL2_ttf.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EC7F0C3C228F6D20003C4D50 /* SDL2_ttf.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -43,6 +44,7 @@
 		DB6D34D1228A2FD400A514E1 /* libportaudio.2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libportaudio.2.dylib; path = lib/libportaudio.2.dylib; sourceTree = "<group>"; };
 		DB6D34D3228A2FE600A514E1 /* libsndfile.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libsndfile.1.dylib; path = lib/libsndfile.1.dylib; sourceTree = "<group>"; };
 		DB969664228A18F500C6AE3B /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2.framework; path = lib/SDL2.framework; sourceTree = "<group>"; };
+		EC7F0C3C228F6D20003C4D50 /* SDL2_ttf.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2_ttf.framework; path = bin/SDL2_ttf.framework; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -50,6 +52,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				EC7F0C3D228F6D20003C4D50 /* SDL2_ttf.framework in Frameworks */,
 				DB6D34D4228A2FE600A514E1 /* libsndfile.1.dylib in Frameworks */,
 				DB6D34D2228A2FD400A514E1 /* libportaudio.2.dylib in Frameworks */,
 				DB6D34D0228A2E8700A514E1 /* CoreAudio.framework in Frameworks */,
@@ -93,6 +96,7 @@
 		B776FBCA2289399D00C3AC47 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				EC7F0C3C228F6D20003C4D50 /* SDL2_ttf.framework */,
 				DB6D34D3228A2FE600A514E1 /* libsndfile.1.dylib */,
 				DB6D34D1228A2FD400A514E1 /* libportaudio.2.dylib */,
 				DB6D34CF228A2E8700A514E1 /* CoreAudio.framework */,
@@ -265,8 +269,13 @@
 				FRAMEWORK_SEARCH_PATHS = (
 					bin/,
 					"$(PROJECT_DIR)/lib",
+					"$(PROJECT_DIR)/Build/Products/Debug",
+					"$(PROJECT_DIR)/bin",
 				);
-				HEADER_SEARCH_PATHS = include/;
+				HEADER_SEARCH_PATHS = (
+					include/,
+					bin/SDL2_ttf.framework/,
+				);
 				INSTALL_PATH = "@rpath";
 				LD_RUNPATH_SEARCH_PATHS = "@rpath/ @executable_path/";
 				LIBRARY_SEARCH_PATHS = (
@@ -274,6 +283,7 @@
 					"$(PROJECT_DIR)/lib",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				USER_HEADER_SEARCH_PATHS = "$(SRCROOT)";
 			};
 			name = Debug;
 		};
@@ -283,8 +293,13 @@
 				FRAMEWORK_SEARCH_PATHS = (
 					bin/,
 					"$(PROJECT_DIR)/lib",
+					"$(PROJECT_DIR)/Build/Products/Debug",
+					"$(PROJECT_DIR)/bin",
 				);
-				HEADER_SEARCH_PATHS = include/;
+				HEADER_SEARCH_PATHS = (
+					include/,
+					bin/SDL2_ttf.framework/,
+				);
 				INSTALL_PATH = "@rpath";
 				LD_RUNPATH_SEARCH_PATHS = "@rpath/ @executable_path/";
 				LIBRARY_SEARCH_PATHS = (
@@ -292,6 +307,7 @@
 					"$(PROJECT_DIR)/lib",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				USER_HEADER_SEARCH_PATHS = "$(SRCROOT)";
 			};
 			name = Release;
 		};
