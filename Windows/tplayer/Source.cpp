@@ -23,7 +23,7 @@ extern "C"
 
 #define NUM_SECONDS (5)
 #define FRAMES_PER_BUFFER (512)
-#define NUM_CHANNELS (2)
+#define NUM_CHANNELS (32)
 
 typedef struct
 {
@@ -36,7 +36,7 @@ typedef struct
 void cleanup(AVFormatContext *fmt_ctx, AVCodecContext *CodecCtx, FILE *fin, FILE *fout, AVFrame *frame, AVPacket *pkt);
 void pgm_save(unsigned char *buf, int wrap, int xsize, int ysize, FILE *f);
 void decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, FILE *f, double &frameDuration, int &firstFrame, double &timeBase, Uint32 &lTime, Uint32 &elapsed);
-void displayFrame(AVFrame *frame, AVCodecContext *dec_ctx, int &firstFrame, double &timeBase, double &frameDuration, Uint32 &lTime, Uint32 &elapsed);
+void displayFrame(AVFrame * frame, AVCodecContext *dec_ctx, int &firstFrame, double &timeBase, double &frameDuration, Uint32 &lTime, Uint32 &elapsed);
 int initSDL(AVCodecContext *codec_ctx);
 DWORD WINAPI playVideo(void *data);
 DWORD WINAPI playAudio(void *data);
@@ -44,7 +44,7 @@ DWORD WINAPI playAudio(void *data);
 SDL_Renderer *renderer;
 SDL_Texture *texture;
 SDL_Rect r;
-float volume = 100;
+float volume = 50;
 int positionX = 0;
 int positionY = 0;
 
@@ -79,7 +79,8 @@ void pgm_save(unsigned char *buf, int wrap, int xsize, int ysize, FILE *f)
 		fwrite(buf + i * wrap, 1, xsize, f);
 }
 
-void displayFrame(AVFrame *frame, AVCodecContext *dec_ctx, int &firstFrame, double &timeBase, double &frameDuration, Uint32 &lTime, Uint32 &elapsed)
+
+void displayFrame(AVFrame * frame, AVCodecContext *dec_ctx, int &firstFrame, double &timeBase, double &frameDuration, Uint32 &lTime, Uint32 &elapsed)
 {
 	// pass frame data to texture then copy texture to renderer and present renderer
 	SDL_UpdateYUVTexture(texture, &r, frame->data[0], frame->linesize[0], frame->data[1], frame->linesize[1], frame->data[2], frame->linesize[2]);
@@ -87,18 +88,15 @@ void displayFrame(AVFrame *frame, AVCodecContext *dec_ctx, int &firstFrame, doub
 	SDL_RenderCopy(renderer, texture, NULL, NULL);
 	SDL_RenderPresent(renderer);
 
-	if (!firstFrame)
-	{
-		SDL_Delay((Uint32)((frame->pts - frameDuration) * timeBase));
+	if (!firstFrame) {
+		SDL_Delay((Uint32)((frame->best_effort_timestamp - frameDuration) * timeBase));
 		lTime = SDL_GetTicks();
-		frameDuration = frame->pts;
+		frameDuration = frame->best_effort_timestamp;
 		firstFrame = 1;
 	}
-	else
-	{
+	else {
 		elapsed = SDL_GetTicks() - lTime;
-		if (elapsed < (Uint32)((frame->pts - frameDuration) * timeBase * 1000))
-		{
+		if (elapsed < (Uint32)((frame->best_effort_timestamp - frameDuration) * timeBase * 1000)) {
 			//linux
 			//usleep((Uint32)(((frame->pts - frameDuration) * timeBase * 1000) - elapsed) * 1000);
 			std::this_thread::sleep_for(std::chrono::microseconds((Uint32)(((frame->pts - frameDuration) * timeBase * 1000) - elapsed) * 1000));
@@ -106,8 +104,9 @@ void displayFrame(AVFrame *frame, AVCodecContext *dec_ctx, int &firstFrame, doub
 		}
 
 		lTime = SDL_GetTicks();
-		frameDuration = frame->pts;
+		frameDuration = frame->best_effort_timestamp;
 	}
+
 }
 
 void decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, FILE *f, double &frameDuration, int &firstFrame, double &timeBase, Uint32 &lTime, Uint32 &elapsed)
@@ -116,20 +115,17 @@ void decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, FILE *f, dou
 
 	//send packet to decoder
 	ret = avcodec_send_packet(dec_ctx, pkt);
-	if (ret < 0)
-	{
+	if (ret < 0) {
 		fprintf(stderr, "Error sending a packet for decoding\n");
 		exit(1);
 	}
-	while (ret >= 0)
-	{
+	while (ret >= 0) {
 		// receive frame from decoder
 		// we may receive multiple frames or we may consume all data from decoder, then return to main loop
 		ret = avcodec_receive_frame(dec_ctx, frame);
 		if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
 			return;
-		else if (ret < 0)
-		{
+		else if (ret < 0) {
 			// something wrong, quit program
 			fprintf(stderr, "Error during decoding\n");
 			exit(1);
@@ -137,8 +133,10 @@ void decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, FILE *f, dou
 		//printf("processing frame %3d\n", dec_ctx->frame_number);
 		fflush(stdout);
 
+
 		// display frame on sdl window
 		displayFrame(frame, dec_ctx, firstFrame, timeBase, frameDuration, lTime, elapsed);
+
 	}
 }
 
@@ -188,43 +186,41 @@ int initSDL(AVCodecContext *codec_ctx)
 
 DWORD WINAPI playVideo(void *data)
 {
-	const char *file = "media/demo video.mp4";
-	const char *outfile = "media/demo video.yuv";
+	const char *file = "media/video.mp4";
+	const char *outfile = "media/video.yuv";
+
 
 	int ret = 0;
 	int videoFPS = 0;
-	int firstFrame = 1;
+	int firstFrame = 0;
 	int VideoStreamIndex = -1;
 	double frameDuration = 0;
 	Uint32 lTime;
 	Uint32 elapsed;
-	double timeBase = 0.001;
+	double timeBase = 0;
+
 	FILE *fin = NULL;
 	FILE *fout = NULL;
-	time_t timeNow;
-	time_t lastTime;
 	AVCodec *Codec = NULL;
 	AVFrame *frame = NULL;
 	AVPacket *pkt = NULL;
 	AVCodecContext *codecCtx = NULL;
 	AVFormatContext *fmt_ctx = NULL;
 
-	if (ret = avformat_open_input(&fmt_ctx, file, NULL, NULL) < 0)
-	{
+	if (ret = avformat_open_input(&fmt_ctx, file, NULL, NULL) < 0) {
 		av_log(NULL, AV_LOG_ERROR, "cannot open input file\n");
 		cleanup(fmt_ctx, codecCtx, fin, fout, frame, pkt);
 		return -1;
 	}
 
-	if (ret = avformat_find_stream_info(fmt_ctx, NULL) < 0)
-	{
+
+	if (ret = avformat_find_stream_info(fmt_ctx, NULL) < 0) {
 		av_log(NULL, AV_LOG_ERROR, "cannot get stream info\n");
 		cleanup(fmt_ctx, codecCtx, fin, fout, frame, pkt);
 		return -2;
 	}
 
-	for (int i = 0; i < fmt_ctx->nb_streams; i++)
-	{
+	for (int i = 0; i < fmt_ctx->nb_streams; i++) {
 		if (fmt_ctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
 		{
 			VideoStreamIndex = i;
@@ -315,13 +311,14 @@ DWORD WINAPI playVideo(void *data)
 		return -10;
 	}
 
-	// init sdl
+	// init sdl 
 	if (initSDL(codecCtx) < 0)
 	{
 		av_log(NULL, AV_LOG_ERROR, "init sdl failed\n");
 		cleanup(fmt_ctx, codecCtx, fin, fout, frame, pkt);
 		return -11;
 	}
+
 
 	// main loop
 	while (1)
@@ -340,6 +337,7 @@ DWORD WINAPI playVideo(void *data)
 
 		// release packet buffers to be allocated again
 		av_packet_unref(pkt);
+
 	}
 
 	//flush decoder
@@ -518,7 +516,7 @@ int main()
 	}
 
 	/* Get font */
-	font = TTF_OpenFont("font/font.ttf", 36);
+	font = TTF_OpenFont("font.ttf", 36);
 	if (!font)
 	{
 		fprintf(stderr, "could not create sdl font \n");
@@ -589,7 +587,7 @@ int main()
 	volUp.y = 0;
 	volDown.x = 10;
 	volDown.y = 0;
-	vol.x = 35;
+	vol.x = 45;
 	vol.y = 0;
 
 	/* Render the window and text */
@@ -656,9 +654,12 @@ int main()
 						{
 							vol.x = 35;
 						}
-						else
+						else if (volume > 9)
 						{
 							vol.x = 45;
+						}
+						else {
+							vol.x = 55;
 						}
 						vol.y = 0;
 
@@ -694,9 +695,12 @@ int main()
 						{
 							vol.x = 35;
 						}
-						else
+						else if (volume > 9)
 						{
 							vol.x = 45;
+						}
+						else {
+							vol.x = 55;
 						}
 						vol.y = 0;
 

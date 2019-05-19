@@ -1,21 +1,19 @@
-﻿C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\IDE\VC\VCTargets\Microsoft.CppBuild.targets(391,5): warning MSB8028: The intermediate directory (x64\Release\) contains files shared from another project (tplayer.vcxproj).  This can lead to incorrect clean and rebuild behavior.
+﻿C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\IDE\VC\VCTargets\Microsoft.CppBuild.targets(391,5): warning MSB8028: The intermediate directory (x64\Release\) contains files shared from another project (s.vcxproj, tplayer.vcxproj).  This can lead to incorrect clean and rebuild behavior.
   Source.cpp
-d:\tech\mediaplayer\windows\tplayer\source.cpp(94): warning C4244: '=': conversion from 'int64_t' to 'double', possible loss of data
-d:\tech\mediaplayer\windows\tplayer\source.cpp(109): warning C4244: '=': conversion from 'int64_t' to 'double', possible loss of data
-d:\tech\mediaplayer\windows\tplayer\source.cpp(226): warning C4018: '<': signed/unsigned mismatch
-d:\tech\mediaplayer\windows\tplayer\source.cpp(242): warning C4244: '=': conversion from 'double' to 'int', possible loss of data
-d:\tech\mediaplayer\windows\tplayer\source.cpp(205): warning C4101: 'lastTime': unreferenced local variable
-d:\tech\mediaplayer\windows\tplayer\source.cpp(204): warning C4101: 'timeNow': unreferenced local variable
-d:\tech\mediaplayer\windows\tplayer\source.cpp(376): warning C4018: '<': signed/unsigned mismatch
-d:\tech\mediaplayer\windows\tplayer\source.cpp(500): warning C4473: 'fprintf' : not enough arguments passed for format string
-  d:\tech\mediaplayer\windows\tplayer\source.cpp(500): note: placeholders and their parameters expect 1 variadic arguments, but 0 were provided
-  d:\tech\mediaplayer\windows\tplayer\source.cpp(500): note: the missing variadic argument 1 is required by format string '%s'
-d:\tech\mediaplayer\windows\tplayer\source.cpp(566): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
-d:\tech\mediaplayer\windows\tplayer\source.cpp(639): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
-d:\tech\mediaplayer\windows\tplayer\source.cpp(677): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+c:\users\wayne\documents\school\comp 4900\mediaplayer\windows\tplayer\source.cpp(94): warning C4244: '=': conversion from 'int64_t' to 'double', possible loss of data
+c:\users\wayne\documents\school\comp 4900\mediaplayer\windows\tplayer\source.cpp(107): warning C4244: '=': conversion from 'int64_t' to 'double', possible loss of data
+c:\users\wayne\documents\school\comp 4900\mediaplayer\windows\tplayer\source.cpp(223): warning C4018: '<': signed/unsigned mismatch
+c:\users\wayne\documents\school\comp 4900\mediaplayer\windows\tplayer\source.cpp(238): warning C4244: '=': conversion from 'double' to 'int', possible loss of data
+c:\users\wayne\documents\school\comp 4900\mediaplayer\windows\tplayer\source.cpp(374): warning C4018: '<': signed/unsigned mismatch
+c:\users\wayne\documents\school\comp 4900\mediaplayer\windows\tplayer\source.cpp(498): warning C4473: 'fprintf' : not enough arguments passed for format string
+  c:\users\wayne\documents\school\comp 4900\mediaplayer\windows\tplayer\source.cpp(498): note: placeholders and their parameters expect 1 variadic arguments, but 0 were provided
+  c:\users\wayne\documents\school\comp 4900\mediaplayer\windows\tplayer\source.cpp(498): note: the missing variadic argument 1 is required by format string '%s'
+c:\users\wayne\documents\school\comp 4900\mediaplayer\windows\tplayer\source.cpp(564): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+c:\users\wayne\documents\school\comp 4900\mediaplayer\windows\tplayer\source.cpp(637): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+c:\users\wayne\documents\school\comp 4900\mediaplayer\windows\tplayer\source.cpp(678): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
   Generating code
-  39 of 40 functions (97.5%) were compiled, the rest were copied from previous compilation.
-    29 functions were new in current compilation
-    0 functions had inline decision re-evaluated but remain unchanged
+  1 of 40 functions ( 2.5%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    1 functions had inline decision re-evaluated but remain unchanged
   Finished generating code
-  tplayer.vcxproj -> D:\Tech\MediaPlayer\Windows\\bin\s.exe
+  tplayer.vcxproj -> C:\Users\wayne\Documents\School\COMP 4900\MediaPlayer\Windows\\bin\EmplaceAV.exe
