@@ -603,7 +603,7 @@ int main() {
     volUp.y = 0;
     volDown.x = 10;
     volDown.y = 0;
-    vol.x = 35;
+    vol.x = 45;
     vol.y = 0;
     
     /* Render the window and text */
@@ -702,9 +702,12 @@ int main() {
                             {
                                 vol.x = 35;
                             }
-                            else
+                            else if (volume > 9)
                             {
                                 vol.x = 45;
+                            }
+                            else {
+                                vol.x = 55;
                             }
                             vol.y = 0;
                             
@@ -740,9 +743,12 @@ int main() {
                             {
                                 vol.x = 35;
                             }
-                            else
+                            else if (volume > 9)
                             {
                                 vol.x = 45;
+                            }
+                            else {
+                                vol.x = 55;
                             }
                             vol.y = 0;
                             
