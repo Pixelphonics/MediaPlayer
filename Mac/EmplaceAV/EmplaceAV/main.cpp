@@ -241,8 +241,10 @@ void *audio_function( void *ptr ){
     
     /* Open the soundfile */
     for (int i = 0; i < NUM_CHANNELS; i++) {
-        char file[7];
-        sprintf(file, "%d", i + 1);
+        char file[13] = "media/";
+		char fileNum[4];
+        sprintf(fileNum, "%d", i + 1);
+        strcat(file, fileNum);
         strcat(file, ".wav");
         data.file[i] = sf_open(file, SFM_READ, &data.info[i]);
         if (sf_error(data.file[i]) != SF_ERR_NO_ERROR) {
@@ -346,8 +348,8 @@ error:
 
 int main() {
     
-    const char *file = "demo video.mp4";
-    const char *outfile = "test.yuv";
+    const char *file = "media/video.mp4";
+	const char *outfile = "media/video.yuv";
     
     int ret = 0;
     int videoFPS = 0;
@@ -529,7 +531,7 @@ int main() {
     }
     
     /* Get font */
-    font = TTF_OpenFont("font/font.ttf", 36);
+    font = TTF_OpenFont("font.ttf", 36);
     if (!font)
     {
         fprintf(stderr, "could not create sdl font \n");
