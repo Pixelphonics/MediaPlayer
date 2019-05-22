@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		62EA69882294DCDD005AF3BA /* SDL2_ttf.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EC7F0C3C228F6D20003C4D50 /* SDL2_ttf.framework */; };
 		B776FBC4228937CB00C3AC47 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B776FBC3228937CB00C3AC47 /* main.cpp */; };
 		B7E8DCB7228A0C1500D8AD51 /* libavformat.58.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = B7E8DCB6228A0C1500D8AD51 /* libavformat.58.dylib */; };
 		B7E8DCB9228A0C2D00D8AD51 /* libavcodec.58.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = B7E8DCB8228A0C2D00D8AD51 /* libavcodec.58.dylib */; };
@@ -17,7 +18,6 @@
 		DB6D34D2228A2FD400A514E1 /* libportaudio.2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = DB6D34D1228A2FD400A514E1 /* libportaudio.2.dylib */; };
 		DB6D34D4228A2FE600A514E1 /* libsndfile.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = DB6D34D3228A2FE600A514E1 /* libsndfile.1.dylib */; };
 		DB969665228A18F500C6AE3B /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DB969664228A18F500C6AE3B /* SDL2.framework */; };
-		EC7F0C3D228F6D20003C4D50 /* SDL2_ttf.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EC7F0C3C228F6D20003C4D50 /* SDL2_ttf.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -52,7 +52,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				EC7F0C3D228F6D20003C4D50 /* SDL2_ttf.framework in Frameworks */,
+				62EA69882294DCDD005AF3BA /* SDL2_ttf.framework in Frameworks */,
 				DB6D34D4228A2FE600A514E1 /* libsndfile.1.dylib in Frameworks */,
 				DB6D34D2228A2FD400A514E1 /* libportaudio.2.dylib in Frameworks */,
 				DB6D34D0228A2E8700A514E1 /* CoreAudio.framework in Frameworks */,
@@ -150,6 +150,7 @@
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
 			knownRegions = (
+				English,
 				en,
 			);
 			mainGroup = B776FBB7228937CB00C3AC47;
